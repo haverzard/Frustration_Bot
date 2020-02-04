@@ -40,7 +40,7 @@ public class Bot {
         - mengandung informasi letak bangunan dan jumlahnya sesuai lanenya
         - structure: 
             - list dari struktur [data_turret,data_wall,data_energy,data_empty,data_missiles,data_jumlah]
-              dengan ukuran sebesar lane yaitu 8
+              dengan ukuran sebesar lane yaitu 8 (masing-masing data adalah list)
             - data_jumlah memiliki struktur seperti myTotal & enTotal
         - misal ingin memperoleh list letak bangunan turret musuh pada lane 0,
           maka kodenya "enLaneInfo.get(0).get(0)"
@@ -324,6 +324,8 @@ public class Bot {
         if (playerType == PlayerType.B) {
             c = gameWidth-1;
         }
+
+        // Get all needed informations from lane y
         for (int i = 0; i < gameWidth/2; i++) {
             List<Building> a = csc.get(Math.abs(i-c)).getBuildings();
             List<Missile> b = csc.get(Math.abs(i-c)).getMissiles();
@@ -350,6 +352,8 @@ public class Bot {
                 }
             } 
         }
+
+        // Push all informations to list
         if (playerType == PlayerType.A) {
             myTotal.set(0,myTotal.get(0)+sturret);
             myTotal.set(1,myTotal.get(1)+swall);
