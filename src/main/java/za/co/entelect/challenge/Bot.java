@@ -15,6 +15,8 @@ import java.lang.Math;
 import static za.co.entelect.challenge.enums.BuildingType.ATTACK;
 import static za.co.entelect.challenge.enums.BuildingType.DEFENSE;
 import static za.co.entelect.challenge.enums.BuildingType.ENERGY;
+import static za.co.entelect.challenge.enums.BuildingType.TESLA;
+import static za.co.entelect.challenge.enums.BuildingType.IRONCURTAIN;
 
 public class Bot {
     private static final String NOTHING_COMMAND = "";
@@ -82,31 +84,30 @@ public class Bot {
         Proses Seleksi Program
     */
     public String run() {
-        ///// tambah health INGET WOI
         // Check if ironCurtain is available to use and GreedyIronCurtain is available
         if (myself.ironCurtainAvailable && myself.energy >= 120 && checkGreedyIronCurtain()) {
             return buildIC();
-        } else if (myself.isIronCurtainActive && canBuyTurret()) {
+        } else if (myself.isIronCurtainActive && canBuy(ATTACK)) {
             return buildTurret();
         } else {
             // Check if GreedyWinRate is available
-            if (checkGreedyWinRate() && checkGreedyEnergy() && canBuyEnergy()) {
+            if (checkGreedyWinRate() && checkGreedyEnergy() && canBuy(ENERGY)) {
                 return buildEnergy();
             }
             // Check if there is an attack..
             else if (myTotal.get(3) > 0 || myTotal.get(0) > 0) {
                 // Check if GreedyDefense is available
-                if (canBuyWall() && checkGreedyDefense()) 
+                if (canBuy(DEFENSE) && checkGreedyDefense()) 
                     return defendRow();
-                else if (canBuyTurret()) return buildTurret();
+                else if (canBuy(ATTACK)) return buildTurret();
                 return doNothingCommand();
             } 
             // Check if GreedyEnergy is available
-            else if (checkGreedyEnergy() && canBuyEnergy()) {
+            else if (checkGreedyEnergy() && canBuy(ENERGY)) {
                 return buildEnergy();
             } 
             // Just Attack if there is no greedy or do nothing if there is no energy
-            else if (canBuyTurret()) {
+            else if (canBuy(ATTACK)) {
                 return buildTurret();
             } else {
                 return doNothingCommand();
@@ -171,7 +172,7 @@ public class Bot {
             return ENERGY.buildCommand(0,getRandomElementOfList(emptyCellsPos0));
         } else if (!emptyCellsPos1.isEmpty()) {
             return ENERGY.buildCommand(1,getRandomElementOfList(emptyCellsPos1));
-        } else if (canBuyTurret()) {
+        } else if (canBuy(ATTACK)) {
             return buildTurret();
         } else {
             return doNothingCommand();
@@ -192,7 +193,7 @@ public class Bot {
             return doNothingCommand();
         }
         int y = getRandomElementOfList(emptyCellsPos);
-        return Integer.toString(getRandomElementOfList(myLaneInfo.get(y).get(3)))+","+Integer.toString(y)+",5";
+        return IRONCURTAIN.buildCommand(getRandomElementOfList(myLaneInfo.get(y).get(3)),y);
     }
 
     /*
@@ -274,22 +275,10 @@ public class Bot {
     }
 
     /*
-        my energy is equal or more than 20
+        Check if I can buy building with type x
     */
-    private boolean canBuyEnergy() {
-        return gameDetails.buildingsStats.get(ENERGY).price <= myself.energy;
-    }
-    /*
-        my energy is equal or more than 30
-    */
-    private boolean canBuyTurret() {
-        return gameDetails.buildingsStats.get(ATTACK).price <= myself.energy;
-    }
-    /*
-        my energy is equal or more than 30
-    */
-    private boolean canBuyWall() {
-        return gameDetails.buildingsStats.get(DEFENSE).price <= myself.energy;
+    private boolean canBuy(BuildingType x) {
+        return gameDetails.buildingsStats.get(x).price <= myself.energy;
     }
 
     /*

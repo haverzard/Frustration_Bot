@@ -4,7 +4,6 @@ import za.co.entelect.challenge.enums.BuildingType;
 import za.co.entelect.challenge.enums.PlayerType;
 
 public class Building extends Cell {
-
     public int health;
     public int constructionTimeLeft;
     public int price;
