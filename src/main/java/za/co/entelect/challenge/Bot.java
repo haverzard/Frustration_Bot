@@ -26,18 +26,34 @@ public class Bot {
     private Player opponent;
     private List<Building> buildings;
     private List<Missile> missiles;
+    /* 
+        myTotal & enTotal 
+        - mengandung informasi jumlah setiap bangunan dengan struktur di bawah
+        - myTotal punya kita, enTotal punya musuh
+        - structure:
+            [turret,wall,energy,missiles,empty]
+    */
     private List<Integer> myTotal;
     private List<Integer> enTotal;
+    /* 
+        myLaneInfo dan enLaneInfo 
+        - mengandung informasi letak bangunan dan jumlahnya sesuai lanenya
+        - structure: 
+            - list dari struktur [data_turret,data_wall,data_energy,data_empty,data_missiles,data_jumlah]
+              dengan ukuran sebesar lane yaitu 8
+            - data_jumlah memiliki struktur seperti myTotal & enTotal
+        - misal ingin memperoleh list letak bangunan turret musuh pada lane 0,
+          maka kodenya "enLaneInfo.get(0).get(0)"
+    */
     private List<List<List<Integer>>> myLaneInfo;
     private List<List<List<Integer>>> enLaneInfo;
-    //info tiap lane [data_turret,data_wall,data_energy,data_empty,data_missiles,data_jumlah]
-    //data jumlah [turret,wall,energy,missiles,empty]
 
-    /**
-     * Constructor
-     *
-     * @param gameState the game state
-     **/
+
+    /*
+        Constructor Bot
+        Informasi diperoleh dari file state.json dengan menggunakan library gson
+        Lalu dicari informasi per lane nya dengan metode getLaneInfoFromPlayer
+    */
     public Bot(GameState gameState) {
         this.gameState = gameState;
         gameDetails = gameState.getGameDetails();
@@ -62,57 +78,82 @@ public class Bot {
         }
     }
 
-    /**
-     * Run
-     *
-     * @return the result
-     **/
+    /*
+        Proses Seleksi Program
+    */
     public String run() {
-        // Check if ironCurtain is available
         ///// tambah health INGET WOI
-        if (myself.ironCurtainAvailable && myself.energy >= 120 
-            && (myself.health < 30 || enTotal.get(0) >= 8 || opponent.isIronCurtainActive || this.myTotal.get(0) < this.enTotal.get(0))) {
+        // Check if ironCurtain is available to use and GreedyIronCurtain is available
+        if (myself.ironCurtainAvailable && myself.energy >= 120 && checkGreedyIronCurtain()) {
             return buildIC();
         } else if (myself.isIronCurtainActive && canBuyTurret()) {
             return buildTurret();
-        //} else if (opponent.health < 30 && myself.health > opponent.health && myself.energy >= 120) {
-        //    return flex(); 
         } else {
-            // Check if there is any enemy turret
-            if (myTotal.get(0) > enTotal.get(0)+2 && (myself.health > 50 || myself.health > opponent.health) && checkGreedyEnergy() && canBuyEnergy()) {
+            // Check if GreedyWinRate is available
+            if (checkGreedyWinRate() && checkGreedyEnergy() && canBuyEnergy()) {
                 return buildEnergy();
             }
+            // Check if there is an attack..
             else if (myTotal.get(3) > 0 || myTotal.get(0) > 0) {
-                //if (canBuyWall() && (enTotal.get(2) >= myTotal.get(2) || myTotal.get(0) > enTotal.get(0)+1))
-                if (canBuyWall() && enTotal.get(2)+1 < myTotal.get(2) &&  enTotal.get(0)+1 < myTotal.get(0)) 
+                // Check if GreedyDefense is available
+                if (canBuyWall() && checkGreedyDefense()) 
                     return defendRow();
                 else if (canBuyTurret()) return buildTurret();
                 return doNothingCommand();
             } 
-            // Focus Money?
+            // Check if GreedyEnergy is available
             else if (checkGreedyEnergy() && canBuyEnergy()) {
                 return buildEnergy();
             } 
-            // Focus Attack?
+            // Just Attack if there is no greedy or do nothing if there is no energy
             else if (canBuyTurret()) {
                 return buildTurret();
             } else {
                 return doNothingCommand();
             }
         }
-        // Maybe Defense?
     }
 
-    /**
-     * Build random building
-     *
-     * @return the result
-     **/
-
+    /* 
+        GreedyEnergy: get 10 energy buildings first or build energy buildings as long as enemy builds energy
+                      and my energy buildings are less than 13
+    */
     private boolean checkGreedyEnergy() {
         return myTotal.get(2) < 10 || (myTotal.get(2) < 13 && myTotal.get(2) <= enTotal.get(2));
     }
 
+    /* 
+        GreedyIronCurtain: either
+            - health is low
+            - enemy's turrets are more than 8
+            - enemy activates iron curtain
+            - my turrets are less than enemy's turrets
+    */
+    private boolean checkGreedyIronCurtain() {
+        return (myself.health < 30 || enTotal.get(0) >= 8 || opponent.isIronCurtainActive || this.myTotal.get(0) < this.enTotal.get(0));
+    }
+
+    /*
+        GreedyWinRate: my turrets are more than enemy's turrets and either
+            - my health is more than half max
+            - my health is more than enemy's health
+    */
+    private boolean checkGreedyWinRate() {
+        return myTotal.get(0) > enTotal.get(0)+2 && (myself.health > 50 || myself.health > opponent.health);
+    }
+
+    /*
+        GreedyDefense: my turrets are more than enemy's turrets 
+                       and my energy buildings are more than enemy's energy buildings
+    */
+    private boolean checkGreedyDefense() {
+        return enTotal.get(2)+1 < myTotal.get(2) &&  enTotal.get(0)+1 < myTotal.get(0);
+    }
+
+    /*
+        Build Energy only on the last (behind) 2 columns and on a lane/row with no missiles
+        If there is no available place, just attack or wait
+    */
     private String buildEnergy() {
         List<Integer> emptyCellsPos0 = new ArrayList<Integer>();
         List<Integer> emptyCellsPos1 = new ArrayList<Integer>();
@@ -137,6 +178,9 @@ public class Bot {
         }
     }
 
+    /*
+        Build Iron Curtain
+    */
     private String buildIC() {
         List<Integer> emptyCellsPos = new ArrayList<Integer>();
         for(int i = 0; i < gameHeight; i++) {
@@ -151,6 +195,9 @@ public class Bot {
         return Integer.toString(getRandomElementOfList(myLaneInfo.get(y).get(3)))+","+Integer.toString(y)+",5";
     }
 
+    /*
+        Build Turret
+    */
     private String buildTurret() {
         List<Integer> emptyCellsPos = new ArrayList<Integer>();
         List<Integer> emptyCellsPos2 = new ArrayList<Integer>();
@@ -226,66 +273,44 @@ public class Bot {
         return ATTACK.buildCommand(t,y);
     }
 
-    /**
-     * Has enough energy for most expensive building
-     *
-     * @return the result
-     **/
-    private boolean hasEnoughEnergyForMostExpensiveBuilding() {
-        return gameDetails.buildingsStats.values().stream()
-                .filter(b -> b.price <= myself.energy)
-                .toArray()
-                .length == 3;
-    }
+    /*
+        my energy is equal or more than 20
+    */
     private boolean canBuyEnergy() {
         return gameDetails.buildingsStats.get(ENERGY).price <= myself.energy;
     }
+    /*
+        my energy is equal or more than 30
+    */
     private boolean canBuyTurret() {
         return gameDetails.buildingsStats.get(ATTACK).price <= myself.energy;
     }
+    /*
+        my energy is equal or more than 30
+    */
     private boolean canBuyWall() {
         return gameDetails.buildingsStats.get(DEFENSE).price <= myself.energy;
     }
 
-    /**
-     * Defend row
-     *
-     * @return the result
-     **/
+    /*
+        Put wall on a lane with turret and no wall, on the 7th row
+    */
     private String defendRow() {
         for (int i = 0; i < gameHeight; i++) {
-            boolean opponentAttacking = getAnyBuildingsForPlayer(PlayerType.B, b -> b.buildingType == ATTACK, i);
-            if (opponentAttacking && myLaneInfo.get(i).get(1).isEmpty() && canAffordBuilding(ATTACK)) {
+            if (!enLaneInfo.get(i).get(0).isEmpty() && myLaneInfo.get(i).get(1).isEmpty()) {
                 return DEFENSE.buildCommand(7,i);
             }
         }
         return buildTurret();
     }
 
-    /**
-     * Do nothing command
-     *
-     * @return the result
-     **/
+    /* Do Nothing */
     private String doNothingCommand() {
         return NOTHING_COMMAND;
     }
 
-    /**
-     * Get random element of list
-     *
-     * @param list the list < t >
-     * @return the result
-     **/
     private <T> T getRandomElementOfList(List<T> list) {
         return list.get((new Random()).nextInt(list.size()));
-    }
-
-    private boolean getAnyBuildingsForPlayer(PlayerType playerType, Predicate<Building> filter, int y) {
-        return buildings.stream()
-                .filter(b -> b.getPlayerType() == playerType
-                        && b.getY() == y)
-                .anyMatch(filter);
     }
 
     private List<List<Integer>> getLaneInfoFromPlayer(PlayerType playerType, int y) {
@@ -356,19 +381,5 @@ public class Bot {
         res.add(total);
 
         return res;
-    }
-
-
-    /**
-     * Can afford building
-     *
-     * @param buildingType the building type
-     * @return the result
-     **/
-    private boolean canAffordBuilding(BuildingType buildingType) {
-        return myself.energy >= gameDetails.buildingsStats.get(buildingType).price;
-    }
-    private String tesla(int x, int y) {
-        return Integer.toString(x)+","+Integer.toString(y)+",4";
     }
 }
