@@ -69,8 +69,9 @@ public class Bot {
      **/
     public String run() {
         // Check if ironCurtain is available
+        ///// tambah health INGET WOI
         if (myself.ironCurtainAvailable && myself.energy >= 120 
-            && (enTotal.get(0) >= 8 || opponent.isIronCurtainActive || this.myTotal.get(0) < this.enTotal.get(0))) {
+            && (myself.health < 30 || enTotal.get(0) >= 8 || opponent.isIronCurtainActive || this.myTotal.get(0) < this.enTotal.get(0))) {
             return buildIC();
         } else if (myself.isIronCurtainActive && canBuyTurret()) {
             return buildTurret();
@@ -112,25 +113,6 @@ public class Bot {
         return myTotal.get(2) < 10 || (myTotal.get(2) < 13 && myTotal.get(2) <= enTotal.get(2));
     }
 
-
-    private String buildRandom() {
-        List<CellStateContainer> emptyCells = gameState.getGameMap().stream()
-                .filter(c -> c.getBuildings().size() == 0 && c.x < (gameWidth / 2))
-                .collect(Collectors.toList());
-
-        if (emptyCells.isEmpty()) {
-            return doNothingCommand();
-        }
-
-        CellStateContainer randomEmptyCell = getRandomElementOfList(emptyCells);
-        BuildingType randomBuildingType = getRandomElementOfList(Arrays.asList(BuildingType.values()));
-
-        if (!canAffordBuilding(randomBuildingType)) {
-            return doNothingCommand();
-        }
-
-        return randomBuildingType.buildCommand(randomEmptyCell.x, randomEmptyCell.y);
-    }
     private String buildEnergy() {
         List<Integer> emptyCellsPos0 = new ArrayList<Integer>();
         List<Integer> emptyCellsPos1 = new ArrayList<Integer>();
@@ -146,7 +128,7 @@ public class Bot {
         }
         if (!emptyCellsPos0.isEmpty()) {
             return ENERGY.buildCommand(0,getRandomElementOfList(emptyCellsPos0));
-        } else if (!emptyCellsPos0.isEmpty()) {
+        } else if (!emptyCellsPos1.isEmpty()) {
             return ENERGY.buildCommand(1,getRandomElementOfList(emptyCellsPos1));
         } else if (canBuyTurret()) {
             return buildTurret();
@@ -287,28 +269,6 @@ public class Bot {
      **/
     private String doNothingCommand() {
         return NOTHING_COMMAND;
-    }
-
-    /**
-     * Place building in row
-     *
-     * @param buildingType the building type
-     * @param y            the y
-     * @return the result
-     **/
-    private String placeBuildingInRow(BuildingType buildingType, int y) {
-        List<CellStateContainer> emptyCells = gameState.getGameMap().stream()
-                .filter(c -> c.getBuildings().isEmpty()
-                        && c.y == y
-                        && c.x < (gameWidth / 2) - 1)
-                .collect(Collectors.toList());
-
-        if (emptyCells.isEmpty()) {
-            return buildRandom();
-        }
-
-        CellStateContainer randomEmptyCell = getRandomElementOfList(emptyCells);
-        return buildingType.buildCommand(randomEmptyCell.x, randomEmptyCell.y);
     }
 
     /**
