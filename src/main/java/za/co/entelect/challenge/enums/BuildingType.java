@@ -10,7 +10,6 @@ public enum BuildingType {
     private int type;
 
     BuildingType(int type) {
-
         this.type = type;
     }
 

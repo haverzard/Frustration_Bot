@@ -3,6 +3,6 @@
 	"email": "OOF",
 	"nickName": "FRUSTRATION",
 	"botLocation": "/target",
-	"botFileName": "java-sample-bot-jar-with-dependencies.jar",
+	"botFileName": "frustration.jar",
 	"botLanguage": "java"
 }
